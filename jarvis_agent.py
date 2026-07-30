@@ -8,8 +8,8 @@ from telegram.ext import ApplicationBuilder, ContextTypes, MessageHandler, filte
 from google import genai
 from google.genai.errors import APIError
 
-# 1. API-nøkler
-GEMINI_API_KEY = "AQ.Ab8RN6I0aqvMtDRVHzzMQnyb2GGJ4bfaRPjSOHzTZvaD8BPziw"
+# 1. API-nøkler (hver variabel på sin egen linje)
+GEMINI_API_KEY = "AIzaSyCXf10TO_1BzsyROPR_ulpg_qYEqPTnmAU"
 TELEGRAM_TOKEN = "8963063213:AAGiX2gq3fgDwf7_bPXO7SoZVzmKqM9qS-o"
 
 client = genai.Client(api_key=GEMINI_API_KEY)
