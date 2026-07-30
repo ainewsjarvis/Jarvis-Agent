@@ -1,5 +1,8 @@
 import logging
 import asyncio
+import os
+from http.server import HTTPServer, BaseHTTPRequestHandler
+import threading
 from telegram import Update
 from telegram.ext import ApplicationBuilder, ContextTypes, MessageHandler, filters
 from google import genai
@@ -14,11 +17,23 @@ MODELL = "gemini-1.5-flash"
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 
+# Enkel web-server for at Render Free Web Service skal holde seg fornøyd
+class HealthCheckHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write(b"Jarvis is alive!")
+
+def run_health_check_server():
+    port = int(os.environ.get("PORT", 10000))
+    server = HTTPServer(('0.0.0.0', port), HealthCheckHandler)
+    server.serve_forever()
+
 async def haandter_melding(update: Update, context: ContextTypes.DEFAULT_TYPE):
     bruker_tekst = update.message.text
     print(f"Mottatt fra mobil: {bruker_tekst}")
 
-    for forsoek in range(3):  # Prøver opptil 3 ganger hvis 429 oppstår
+    for forsoek in range(3):
         try:
             response = client.models.generate_content(
                 model=MODELL,
@@ -28,7 +43,6 @@ async def haandter_melding(update: Update, context: ContextTypes.DEFAULT_TYPE):
             break
         except APIError as e:
             if "429" in str(e):
-                print("Fartsgrense nådd (429). Venter 5 sekunder før nytt forsøk...")
                 await asyncio.sleep(5)
                 svar = "Beklager, Google bremsede forespørselen litt. Prøv igjen om noen sekunder!"
             else:
@@ -41,6 +55,9 @@ async def haandter_melding(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(svar)
 
 if __name__ == '__main__':
+    # Start webserver i egen tråd for Render
+    threading.Thread(target=run_health_check_server, daemon=True).start()
+
     print("--- 🤖 JARVIS TELEGRAM-BOT ER STARTET OG LYTTER PÅ MOBILEN ---")
     app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
     app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), haandter_melding))
